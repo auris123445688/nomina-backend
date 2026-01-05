@@ -1,32 +1,30 @@
+// index.js
 import express from "express";
 import cors from "cors";
 import axios from "axios";
 import PDFDocument from "pdfkit";
 import fs from "fs";
-import path from "path";
+import dotenv from "dotenv";
+
+dotenv.config(); // Carga las variables de entorno desde .env
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Puerto
 const PORT = process.env.PORT || 3000;
+const GEMINI_KEY = process.env.GEMINI_API_KEY; // ✅ clave desde variables de entorno
 
-// Gemini API Key desde variable de entorno
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-
-// Endpoint del asistente
+// ================= IA GEMINI =================
 app.post("/assistant", async (req, res) => {
-  console.log("Request body:", req.body);
-
-  const { question, user_id } = req.body;
+  const { question } = req.body;
 
   if (!question) {
-    return res.json({ answer: "Pregunta vacía." });
+    return res.json({ answer: "❌ Pregunta vacía." });
   }
 
   try {
-    // Llamada a Gemini
+    // Llamada a la API de Gemini
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
       {
@@ -35,27 +33,27 @@ app.post("/assistant", async (req, res) => {
             parts: [
               {
                 text: `
-Actúa como un asistente profesional de nómina y RRHH
-especializado EXCLUSIVAMENTE en la República Dominicana.
+Actúa como experto en nómina y leyes laborales
+de la República Dominicana. Responde de manera clara y profesional.
 
-Usuario (${user_id}):
+Pregunta del usuario:
 ${question}
-`
-              }
-            ]
-          }
-        ]
+              `,
+              },
+            ],
+          },
+        ],
       }
     );
 
     const answer = response.data.candidates[0].content.parts[0].text;
 
-    // ===== Generar PDF si se solicita =====
+    // ===== PDF opcional si el usuario lo solicita =====
     let fileUrl = null;
     if (question.toLowerCase().includes("pdf")) {
       const doc = new PDFDocument();
       const fileName = `documento_${Date.now()}.pdf`;
-      const filePath = path.join(__dirname, fileName);
+      const filePath = `./${fileName}`;
 
       doc.pipe(fs.createWriteStream(filePath));
       doc.fontSize(12).text(answer);
@@ -65,13 +63,16 @@ ${question}
     }
 
     res.json({ answer, file_url: fileUrl });
-  } catch (e) {
-    console.error("Error Gemini:", e.message);
+  } catch (error) {
+    console.error(error);
     res.json({ answer: "❌ Error al conectar con Gemini." });
   }
 });
 
-// Servir archivos estáticos (PDFs)
-app.use(express.static(__dirname));
+// ===== SERVIR ARCHIVOS ESTÁTICOS (PDFs) =====
+app.use(express.static("."));
 
-app.listen(PORT, () => console.log(`Backend IA activo en puerto ${PORT}`));
+// ===== LEVANTAR EL SERVIDOR =====
+app.listen(PORT, () => {
+  console.log(`Backend IA activo en http://localhost:${PORT}`);
+});

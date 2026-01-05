@@ -2,73 +2,63 @@ import express from "express";
 import cors from "cors";
 import axios from "axios";
 import PDFDocument from "pdfkit";
+import fs from "fs";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;AIzaSyAxhN2UOxlLIxheggj3pwiInCNp0uBsWsU
 
-// ===============================
-// ENDPOINT PRINCIPAL DEL ASISTENTE
-// ===============================
+// ================= IA GEMINI =================
 app.post("/assistant", async (req, res) => {
   const { question } = req.body;
 
-  if (!question) {
-    return res.status(400).json({
-      answer: "Pregunta vacía.",
-    });
-  }
-
   try {
-    // 👉 RESPUESTA SIMULADA (LUEGO CONECTAMOS IA REAL)
-    let answer = "";
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${AIzaSyAxhN2UOxlLIxheggj3pwiInCNp0uBsWsU}`,
+      {
+        contents: [{
+          parts: [{
+            text: `
+Actúa como experto en nómina y leyes laborales
+de la República Dominicana. Sé profesional.
 
-    if (question.toLowerCase().includes("carta laboral")) {
-      answer =
-        "He generado tu carta laboral correctamente. Puedes descargarla abajo.";
-      
-      const pdf = new PDFDocument();
-      const chunks = [];
+${question}
+`
+          }]
+        }]
+      }
+    );
 
-      pdf.on("data", (chunk) => chunks.push(chunk));
-      pdf.on("end", () => {
-        const result = Buffer.concat(chunks);
+    const answer =
+      response.data.candidates[0].content.parts[0].text;
 
-        res.json({
-          answer,
-          file_url:
-            "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-        });
-      });
+    // ===== GENERAR PDF SI SE PIDE =====
+    let fileUrl = null;
+    if (question.toLowerCase().includes("pdf")) {
+      const doc = new PDFDocument();
+      const fileName = `documento_${Date.now()}.pdf`;
+      const filePath = `./${fileName}`;
 
-      pdf.fontSize(18).text("CARTA LABORAL", { align: "center" });
-      pdf.moveDown();
-      pdf.fontSize(12).text(
-        "Certificamos que el señor/a __________________ labora en nuestra empresa desde _______."
-      );
-      pdf.end();
-    } else {
-      answer =
-        "Soy tu asistente de nómina y RRHH. Puedo ayudarte con cartas laborales, cálculos de nómina y consultas legales.";
-      res.json({ answer });
+      doc.pipe(fs.createWriteStream(filePath));
+      doc.fontSize(12).text(answer);
+      doc.end();
+
+      fileUrl = `${req.protocol}://${req.get("host")}/${fileName}`;
     }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      answer: "Error interno del servidor.",
-    });
+
+    res.json({ answer, file_url: fileUrl });
+  } catch {
+    res.json({ answer: "Error con la IA." });
   }
 });
 
-// ===============================
-// ENDPOINT DE PRUEBA
-// ===============================
-app.get("/", (req, res) => {
-  res.send("Backend Nómina funcionando correctamente 🚀");
-});
+// ===== SERVIR PDFs =====
+app.use(express.static("."));
 
-app.listen(PORT, () => {
-  console.log(`Servidor activo en puerto ${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log("Backend IA activo")
+);
+

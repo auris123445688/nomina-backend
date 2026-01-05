@@ -11,7 +11,7 @@ app.use(express.json());
 
 // ================= CONFIG =================
 const PORT = 3000; // Cambia el puerto si quieres
-const GEMINI_KEY = "AIzaSyAOHFMdkTRm9YsfK8w-xpmpQnCSBhZ9grkI"; // 🔑 Coloca tu API Key aquí
+const GEMINI_KEY = "AIzaSyAQflNKWMxSs9k9BJxuZ2gQ4dRlY1A9Fls"; // 🔑 Coloca tu API Key aquí
 
 // ================= RUTA DEL ASISTENTE =================
 app.post("/assistant", async (req, res) => {

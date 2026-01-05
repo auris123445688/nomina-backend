@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const GEMINI_KEY = process.env.GEMINI_API_KEY; // ✅ clave desde variables de entorno
+const GEMINI_KEY ='AIzaSyAxhN2UOxlLIxheggj3pwiInCNp0uBsWsU'
 
 // ================= IA GEMINI =================
 app.post("/assistant", async (req, res) => {

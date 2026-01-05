@@ -4,21 +4,14 @@ import axios from "axios";
 import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
-import dotenv from "dotenv";
-
-dotenv.config(); // ✅ Lee las variables de .env
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-
-if (!GEMINI_KEY) {
-  console.error("❌ GEMINI_API_KEY no definida en .env");
-  process.exit(1);
-}
+// ================= CONFIG =================
+const PORT = 3000; // Cambia el puerto si quieres
+const GEMINI_KEY = "AIzaSyAOHFMdkTRm9YsfK8w-xpmpQnCSBhZ9grkI"; // 🔑 Coloca tu API Key aquí
 
 // ================= RUTA DEL ASISTENTE =================
 app.post("/assistant", async (req, res) => {

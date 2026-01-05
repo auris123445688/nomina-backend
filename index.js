@@ -3,19 +3,13 @@ import cors from "cors";
 import axios from "axios";
 import PDFDocument from "pdfkit";
 import fs from "fs";
-import path from "path";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const GEMINI_KEY = process.env.GEMINI_API_KEY; // ✅ Solo desde variables de entorno
-
-if (!GEMINI_KEY) {
-  console.error("❌ Error: GEMINI_API_KEY no definido en variables de entorno");
-  process.exit(1);
-}
+const GEMINI_KEY = process.env.GEMINI_API_KEY; // ✅ Se toma desde variables de entorno
 
 // ================= IA GEMINI =================
 app.post("/assistant", async (req, res) => {
@@ -29,34 +23,27 @@ app.post("/assistant", async (req, res) => {
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
       {
-        contents: [
-          {
-            parts: [
-              {
-                text: `
-Actúa como experto en nómina y leyes laborales de la República Dominicana.
-Responde de manera clara, profesional y concreta.
+        contents: [{
+          parts: [{
+            text: `
+Actúa como experto en nómina y leyes laborales
+de la República Dominicana.
 
-Pregunta del usuario:
-"${question}"
+${question}
 `
-              }
-            ]
-          }
-        ]
+          }]
+        }]
       }
     );
 
-    const answer =
-      response.data.candidates[0].content.parts[0].text || 
-      "No se pudo generar una respuesta.";
+    const answer = response.data.candidates[0].content.parts[0].text;
 
     // ===== PDF SI SE SOLICITA =====
     let fileUrl = null;
     if (question.toLowerCase().includes("pdf")) {
       const doc = new PDFDocument();
       const fileName = `documento_${Date.now()}.pdf`;
-      const filePath = path.join(process.cwd(), fileName);
+      const filePath = `./${fileName}`;
 
       doc.pipe(fs.createWriteStream(filePath));
       doc.fontSize(12).text(answer);
@@ -66,15 +53,13 @@ Pregunta del usuario:
     }
 
     res.json({ answer, file_url: fileUrl });
-  } catch (error) {
-    console.error("Error Gemini:", error.message);
-    res.json({ answer: "❌ Error al conectar con Gemini." });
+  } catch (e) {
+    console.error(e.message); // 🔹 Para ver errores en los logs
+    res.json({ answer: "Error al conectar con Gemini." });
   }
 });
 
 // ===== SERVIR ARCHIVOS =====
-app.use(express.static(process.cwd()));
+app.use(express.static("."));
 
-app.listen(PORT, () => {
-  console.log(`✅ Backend IA activo en puerto ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Backend IA activo en puerto ${PORT}`));

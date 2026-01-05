@@ -13,14 +13,18 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const GEMINI_KEY ='AIzaSyAxhN2UOxlLIxheggj3pwiInCNp0uBsWsU'
+const GEMINI_KEY = process.env.GEMINI_KEY; // Usa variable de entorno
 
 // ================= IA GEMINI =================
 app.post("/assistant", async (req, res) => {
   const { question } = req.body;
 
-  if (!question) {
-    return res.json({ answer: "❌ Pregunta vacía." });
+  // Validación de entrada
+  if (!question || question.trim().length === 0) {
+    return res.status(400).json({
+      success: false,
+      answer: "Por favor escribe una pregunta válida.",
+    });
   }
 
   try {
@@ -38,7 +42,7 @@ de la República Dominicana. Responde de manera clara y profesional.
 
 Pregunta del usuario:
 ${question}
-              `,
+                `,
               },
             ],
           },
@@ -46,7 +50,10 @@ ${question}
       }
     );
 
-    const answer = response.data.candidates[0].content.parts[0].text;
+    // Extraer respuesta segura
+    const answer =
+      response?.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No se pudo generar una respuesta en este momento.";
 
     // ===== PDF opcional si el usuario lo solicita =====
     let fileUrl = null;
@@ -62,10 +69,14 @@ ${question}
       fileUrl = `${req.protocol}://${req.get("host")}/${fileName}`;
     }
 
-    res.json({ answer, file_url: fileUrl });
+    res.json({ success: true, answer, file_url: fileUrl });
   } catch (error) {
-    console.error(error);
-    res.json({ answer: "❌ Error al conectar con Gemini." });
+    console.error("Error al conectar con Gemini:", error.message);
+    res.status(500).json({
+      success: false,
+      answer:
+        "Hubo un problema al procesar tu solicitud. Intenta nuevamente más tarde.",
+    });
   }
 });
 
@@ -74,5 +85,5 @@ app.use(express.static("."));
 
 // ===== LEVANTAR EL SERVIDOR =====
 app.listen(PORT, () => {
-  console.log(`Backend IA activo en http://localhost:${PORT}`);
+  console.log(`✅ Backend IA activo en http://localhost:${PORT}`);
 });

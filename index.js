@@ -9,21 +9,25 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const GEMINI_KEY = process.env.GEMINI_API_KEY;AIzaSyAxhN2UOxlLIxheggj3pwiInCNp0uBsWsU
+const GEMINI_KEY = process.env.GEMINI_API_KEY; // ✅ SOLO DESDE ENV
 
 // ================= IA GEMINI =================
 app.post("/assistant", async (req, res) => {
   const { question } = req.body;
 
+  if (!question) {
+    return res.json({ answer: "Pregunta vacía." });
+  }
+
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${AIzaSyAxhN2UOxlLIxheggj3pwiInCNp0uBsWsU}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`,
       {
         contents: [{
           parts: [{
             text: `
 Actúa como experto en nómina y leyes laborales
-de la República Dominicana. Sé profesional.
+de la República Dominicana.
 
 ${question}
 `
@@ -35,7 +39,7 @@ ${question}
     const answer =
       response.data.candidates[0].content.parts[0].text;
 
-    // ===== GENERAR PDF SI SE PIDE =====
+    // ===== PDF SI SE SOLICITA =====
     let fileUrl = null;
     if (question.toLowerCase().includes("pdf")) {
       const doc = new PDFDocument();
@@ -50,15 +54,16 @@ ${question}
     }
 
     res.json({ answer, file_url: fileUrl });
-  } catch {
-    res.json({ answer: "Error con la IA." });
+  } catch (e) {
+    res.json({ answer: "Error al conectar con Gemini." });
   }
 });
 
-// ===== SERVIR PDFs =====
+// ===== SERVIR ARCHIVOS =====
 app.use(express.static("."));
 
 app.listen(PORT, () =>
   console.log("Backend IA activo")
 );
+
 
